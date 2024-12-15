@@ -45,8 +45,9 @@ episode_number_of_steps = []
 
 # Agent initialization
 # agent = RandomAgent(n_actions=m)
-MAX_BUFFER_SIZE = 100
-BATCH_SIZE = 16
+MAX_BUFFER_SIZE = 10_00
+BATCH_SIZE = 32
+UPDATE_FREQ = 50
 agent = Agent(state_dim=m, action_dim=n)
 buffer = Buffer(buffer_size=MAX_BUFFER_SIZE, state_dim=m, action_dim=n)
 # Training process
@@ -66,7 +67,7 @@ for _ in range(MAX_BUFFER_SIZE):
         action,
         reward,
         next_state,
-        done,
+        done or truncated,
     )
 
 
@@ -82,13 +83,18 @@ for i in EPISODES:
 
         # Get next state and reward
         next_state, reward, done, truncated, _ = env.step(action)
+
         buffer.add(
             state,
             action,
             reward,
             next_state,
-            done,
+            done or truncated,
         )
+
+        # get a batch
+        # backward step
+        # polyak
 
         # Update episode reward
         total_episode_reward += reward
