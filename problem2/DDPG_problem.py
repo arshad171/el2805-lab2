@@ -9,7 +9,8 @@ import gymnasium as gym
 import torch
 import matplotlib.pyplot as plt
 from tqdm import trange
-from DDPG_agent import RandomAgent
+from DDPG_agent import RandomAgent, Agent
+from buffer import Buffer
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -35,17 +36,39 @@ env.reset()
 N_episodes = 100               # Number of episodes to run for training
 discount_factor = 0.95         # Value of gamma
 n_ep_running_average = 50      # Running average of 50 episodes
-m = len(env.action_space.high) # dimensionality of the action
+m = len(env.observation_space.high) # dimensionality of the action
+n = len(env.action_space.high) # dimensionality of the action
 
 # Reward
 episode_reward_list = []  # Used to save episodes reward
 episode_number_of_steps = []
 
 # Agent initialization
-agent = RandomAgent(m)
-
+# agent = RandomAgent(n_actions=m)
+MAX_BUFFER_SIZE = 100
+BATCH_SIZE = 16
+agent = Agent(state_dim=m, action_dim=n)
+buffer = Buffer(buffer_size=MAX_BUFFER_SIZE, state_dim=m, action_dim=n)
 # Training process
 EPISODES = trange(N_episodes, desc='Episode: ', leave=True)
+
+# initialize buffer
+
+done, truncated = False, False
+state = env.reset()[0]
+for _ in range(MAX_BUFFER_SIZE):
+    action = agent.forward(state)
+
+    # Get next state and reward
+    next_state, reward, done, truncated, _ = env.step(action)
+    buffer.add(
+        state,
+        action,
+        reward,
+        next_state,
+        done,
+    )
+
 
 for i in EPISODES:
     # Reset enviroment data
@@ -59,6 +82,13 @@ for i in EPISODES:
 
         # Get next state and reward
         next_state, reward, done, truncated, _ = env.step(action)
+        buffer.add(
+            state,
+            action,
+            reward,
+            next_state,
+            done,
+        )
 
         # Update episode reward
         total_episode_reward += reward
