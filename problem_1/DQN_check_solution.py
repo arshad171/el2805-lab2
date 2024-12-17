@@ -10,6 +10,7 @@ import torch
 from tqdm import trange
 import warnings
 from networks import DQNetwork
+from DQN_agent import RandomAgent
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
@@ -63,16 +64,17 @@ for i in EPISODES:
         # False otherwise
         q_values = model(torch.tensor(state))
         _, action = torch.max(q_values, dim=0)
-        next_state, reward, done, truncated, _ = env.step(action.item())
+        next_state, reward, done, truncated, _ = env.step(np.random.randint(0,4))
 
         # Update episode reward
         total_episode_reward += reward
 
         # Update state for next iteration
         state = next_state
-
+        
     # Append episode reward
     episode_reward_list.append(total_episode_reward)
+    env.render()
 
 
 # Close environment 
