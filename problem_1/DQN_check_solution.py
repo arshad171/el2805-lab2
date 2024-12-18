@@ -9,6 +9,8 @@ import gymnasium as gym
 import torch
 from tqdm import trange
 import warnings
+from networks import DQNetwork
+from DQN_agent import RandomAgent
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
@@ -25,14 +27,16 @@ def running_average(x, N):
 
 # Load model
 try:
-    model = torch.load('neural-network-1.pth')
+    state_dict = torch.load('./model_weights/best_model_170257.pt', weights_only=True, map_location='cpu')
+    model = DQNetwork()
+    model.load_state_dict(state_dict)
     print('Network model: {}'.format(model))
 except:
     print('File neural-network-1.pth not found!')
     exit(-1)
 
 # Import and initialize Mountain Car Environment
-env = gym.make('LunarLander-v2')
+env = gym.make('LunarLander-v3')
 # If you want to render the environment while training run instead:
 # env = gym.make('LunarLander-v2', render_mode = "human")
 
@@ -60,16 +64,17 @@ for i in EPISODES:
         # False otherwise
         q_values = model(torch.tensor(state))
         _, action = torch.max(q_values, dim=0)
-        next_state, reward, done, truncated, _ = env.step(action.item())
+        next_state, reward, done, truncated, _ = env.step(np.random.randint(0,4))
 
         # Update episode reward
         total_episode_reward += reward
 
         # Update state for next iteration
         state = next_state
-
+        
     # Append episode reward
     episode_reward_list.append(total_episode_reward)
+    env.render()
 
 
 # Close environment 
