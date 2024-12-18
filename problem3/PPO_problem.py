@@ -9,9 +9,11 @@ import gymnasium as gym
 import torch
 import matplotlib.pyplot as plt
 from tqdm import trange
-from PPO_agent import RandomAgent
+from PPO_agent import RandomAgent, Agent
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
+from buffer import Buffer
 
 def running_average(x, N):
     ''' Function used to compute the running average
@@ -25,7 +27,7 @@ def running_average(x, N):
     return y
 
 # Import and initialize Mountain Car Environment
-env = gym.make('LunarLanderContinuous-v2')
+env = gym.make('LunarLanderContinuous-v3')
 # If you want to render the environment while training run instead:
 # env = gym.make('LunarLanderContinuous-v2', render_mode = "human")
 
@@ -35,14 +37,23 @@ env.reset()
 N_episodes = 50               # Number of episodes to run for training
 discount_factor = 0.95         # Value of gamma
 n_ep_running_average = 50      # Running average of 20 episodes
-m = len(env.action_space.high) # dimensionality of the action
+m = len(env.observation_space.high) # dimensionality of the action
+n = len(env.action_space.high) # dimensionality of the action
 
 # Reward
 episode_reward_list = []  # Used to save episodes reward
 episode_number_of_steps = []
 
+
+MAX_BUFFER_SIZE = 30_000
+BATCH_SIZE = 64
+GAMMA = 0.99
+M = 10
+EPS = 0.2
 # Agent initialization
-agent = RandomAgent(m)
+# agent = RandomAgent(n)
+agent = Agent(state_dim=m, action_dim=n, eps=EPS, m=M)
+buffer = Buffer(buffer_size=MAX_BUFFER_SIZE, state_dim=m, action_dim=n, gamma=GAMMA)
 
 # Training process
 EPISODES = trange(N_episodes, desc='Episode: ', leave=True)
@@ -53,12 +64,23 @@ for i in EPISODES:
     state = env.reset()[0]
     total_episode_reward = 0.
     t = 0
+    buffer.clear()
     while not (done or truncated):
         # Take a random action
         action = agent.forward(state)
 
+        action = action.numpy()
+
         # Get next state and reward
         next_state, reward, done, truncated, _ = env.step(action)
+
+        buffer.add(
+            state,
+            action,
+            reward,
+            next_state,
+            done or truncated,
+        )
 
         # Update episode reward
         total_episode_reward += reward
@@ -66,7 +88,14 @@ for i in EPISODES:
         # Update state for next iteration
         state = next_state
         t+= 1
+    
 
+    batch = buffer.sample(batch_size=BATCH_SIZE)
+    buffer.compute_returns()
+
+    agent.backward(batch=batch)
+
+    buffer.clear()
     # Append episode reward
     episode_reward_list.append(total_episode_reward)
     episode_number_of_steps.append(t)
