@@ -7,6 +7,8 @@
 import numpy as np
 import torch as th
 import torch.nn as nn
+from torch.nn import functional as F
+import torch.optim as optim
 
 
 class Agent(object):
@@ -57,17 +59,59 @@ class Agent(object):
             nn.Linear(200, 1),
         )
 
+        self.actor_opt = optim.Adam(self.actor.parameters(), lr=5e-4)
+        self.critic_opt = optim.Adam(self.critic.parameters(), lr=1e-3)
+
+        self.curr_actor_loss = 0
+        self.curr_critic_loss = 0
+
     def forward(self, state: np.ndarray):
         """Performs a forward computation"""
         with th.no_grad():
             x = th.tensor(state)
             action = self.actor.forward(x)
-        
-        return action.numpy()
 
-    def backward(self):
+        return action
+
+    def backward(self, batch, gamma, update_actor=False):
         """Performs a backward pass on the network"""
-        pass
+        states = th.tensor(batch["states"])
+        actions = th.tensor(batch["actions"])
+        rewards = th.tensor(batch["rewards"])
+        next_states = th.tensor(batch["next_states"])
+        dones = th.tensor(batch["dones"])
+
+        with th.no_grad():
+            next_actions = self.actor_tar.forward(next_states)
+            Q_next = self.critic_tar.forward(th.hstack([next_states, next_actions]))
+            targets = rewards + (1 - dones) * gamma * Q_next
+
+        Q = self.critic(th.hstack([states, actions]))
+
+        # critic_loss = th.mean((targets - Q)**2)
+        # actor_loss = - th.mean(Q**2)
+
+        critic_loss = F.mse_loss(Q, targets)
+        self.curr_critic_loss = critic_loss.item()
+
+        self.critic_opt.zero_grad()
+        critic_loss.backward()
+        th.nn.utils.clip_grad_norm_(self.critic.parameters(), 1.0)
+        self.critic_opt.step()
+
+        if update_actor:
+            actions_p = self.actor(states)
+            Q = self.critic.forward(th.hstack([states, actions_p]))
+
+            actor_loss = -Q.mean()
+            self.curr_actor_loss = actor_loss.item()
+
+            self.actor_opt.zero_grad()
+            actor_loss.backward()
+            th.nn.utils.clip_grad_norm_(self.actor.parameters(), 1.0)
+            self.actor_opt.step()
+        
+        return self.curr_critic_loss, self.curr_actor_loss
 
 
 class RandomAgent(Agent):

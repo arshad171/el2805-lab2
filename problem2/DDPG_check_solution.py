@@ -32,7 +32,7 @@ except:
     exit(-1)
 
 # Import and initialize Mountain Car Environment
-env = gym.make('LunarLanderContinuous-v2')
+env = gym.make('LunarLanderContinuous-v3')
 # If you want to render the environment while training run instead:
 # env = gym.make('LunarLanderContinuous-v2', render_mode = "human")
 env.reset()
@@ -56,7 +56,7 @@ for i in EPISODES:
     while not (done or truncated):
         
         # Decide next action
-        action = model(torch.tensor(state))[0]
+        action = model(torch.tensor(state))
         
         # Get next state and reward
         next_state, reward, done, truncated, _ = env.step(action.detach().numpy())
