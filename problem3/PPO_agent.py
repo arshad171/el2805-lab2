@@ -123,7 +123,7 @@ class Agent(object):
         old_proba = th.zeros(size=(batch_len,))
 
         for b_ix in range(batch_len):
-            old_proba[b_ix] = self.compute_action_proba(states[b_ix], actions[b_ix])
+            old_proba[b_ix] = self.compute_action_proba(states[b_ix], actions[b_ix]).detach()
 
         for _ in range(self.M):
             V_pred = self.critic(states)

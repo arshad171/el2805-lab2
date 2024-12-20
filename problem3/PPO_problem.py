@@ -34,7 +34,7 @@ env = gym.make('LunarLanderContinuous-v3')
 env.reset()
 
 # Parameters
-N_episodes = 50               # Number of episodes to run for training
+N_episodes = 1600               # Number of episodes to run for training
 discount_factor = 0.95         # Value of gamma
 n_ep_running_average = 50      # Running average of 20 episodes
 m = len(env.observation_space.high) # dimensionality of the action
@@ -68,7 +68,6 @@ for i in EPISODES:
     while not (done or truncated):
         # Take a random action
         action = agent.forward(state)
-
         action = action.numpy()
 
         # Get next state and reward
@@ -90,9 +89,8 @@ for i in EPISODES:
         t+= 1
     
 
-    batch = buffer.sample(batch_size=BATCH_SIZE)
     buffer.compute_returns()
-
+    batch = buffer.sample(batch_size=BATCH_SIZE)
     agent.backward(batch=batch)
 
     buffer.clear()
@@ -111,6 +109,12 @@ for i in EPISODES:
 
 # Close environment
 env.close()
+
+critic = agent.critic
+actor = agent.actor
+
+torch.save(critic, "neural-network-3-critic.pth")
+torch.save(actor, "neural-network-3-actor.pth")
     
 # Plot Rewards and steps
 fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(16, 9))
