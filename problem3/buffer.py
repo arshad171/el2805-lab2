@@ -28,6 +28,7 @@ class Buffer:
         self.rewards_bf.fill(0.0)
         self.next_states_bf.fill(0.0)
         self.dones_bf.fill(0.0)
+        self.returns_bf.fill(0.0)
 
     def add(
         self,
