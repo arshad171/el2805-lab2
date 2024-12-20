@@ -4,6 +4,7 @@
 
 
 # Load packages
+import json
 import numpy as np
 import gymnasium as gym
 import torch
@@ -57,7 +58,8 @@ buffer = Buffer(buffer_size=MAX_BUFFER_SIZE, state_dim=m, action_dim=n, gamma=GA
 
 # Training process
 EPISODES = trange(N_episodes, desc='Episode: ', leave=True)
-
+actor_losses = []
+critic_losses = []
 for i in EPISODES:
     # Reset enviroment data
     done, truncated = False, False
@@ -91,7 +93,10 @@ for i in EPISODES:
 
     buffer.compute_returns()
     batch = buffer.sample(batch_size=BATCH_SIZE)
-    agent.backward(batch=batch)
+    critic_loss, actor_loss = agent.backward(batch=batch)
+
+    actor_losses.append(actor_loss)
+    critic_losses.append(critic_loss)
 
     buffer.clear()
     # Append episode reward
@@ -110,6 +115,26 @@ for i in EPISODES:
 # Close environment
 env.close()
 
+plt.figure()
+plt.plot(range(len(critic_losses)), critic_losses)
+plt.title("critic")
+plt.xlabel("Episodes")
+plt.ylabel("Loss")
+plt.show(block=False)
+
+plt.figure()
+plt.plot(range(len(actor_losses)), actor_losses)
+plt.title("actor")
+plt.xlabel("Episodes")
+plt.ylabel("Loss")
+plt.show(block=False)
+
+
+losses = {
+    "critic": critic_losses,
+    "actor": actor_losses,
+}
+json.dump(losses, open("losses.json", "w"))
 critic = agent.critic
 actor = agent.actor
 

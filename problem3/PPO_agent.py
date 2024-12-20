@@ -119,7 +119,7 @@ class Agent(object):
         dones = th.tensor(batch["dones"])
         returns = th.tensor(batch["returns"])
 
-        # phi = returns - self.critic.forward(states)
+        phi = returns - self.critic.forward(states).detach()
         old_proba = th.zeros(size=(batch_len,))
 
         for b_ix in range(batch_len):
@@ -137,7 +137,7 @@ class Agent(object):
             self.critic_opt.step()
 
             # with th.no_grad():
-            phi = returns - self.critic.forward(states)
+            # phi = returns - self.critic.forward(states)
 
             new_proba = th.zeros(size=(batch_len,))
 
