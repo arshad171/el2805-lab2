@@ -81,9 +81,11 @@ class Agent(object):
         mu, var = self.actor.forward(x)
 
         # cross-variances are zero
-        action_dist = th.distributions.MultivariateNormal(mu, th.diag(var))
+        # action_dist = th.distributions.MultivariateNormal(mu, th.diag(var))
+        action_dist = th.distributions.Independent(th.distributions.Normal(mu, var), 1)
 
         action = action_dist.sample()
+        action = th.clamp(action, -1.0, 1.0)
 
         return action
 
@@ -102,11 +104,18 @@ class Agent(object):
         return norm_const * th.exp(exp_term).squeeze()
 
     def compute_action_proba(self, states, actions):
-        mu, var = self.actor.forward(states)
+        mu, var = self.actor(states)
 
         pdf = self.mvn_pdf(actions, mu, var)
 
         return pdf
+    
+    def compute_action_log_proba(self, states, actions):
+        mu, var = self.actor(states)
+
+        action_dist = th.distributions.Independent(th.distributions.Normal(mu, var), 1)
+
+        return action_dist.log_prob(actions)
 
 
     def backward(self, batch):
@@ -122,8 +131,12 @@ class Agent(object):
         phi = returns - self.critic.forward(states).detach()
         old_proba = th.zeros(size=(batch_len,))
 
-        for b_ix in range(batch_len):
-            old_proba[b_ix] = self.compute_action_proba(states[b_ix], actions[b_ix]).detach()
+
+        # for b_ix in range(batch_len):
+        #     # old_proba[b_ix] = self.compute_action_proba(states[b_ix], actions[b_ix]).detach()
+        #     old_proba[b_ix] = self.compute_action_log_proba(states[b_ix], actions[b_ix]).detach()
+
+        old_proba = self.compute_action_log_proba(states, actions).detach()
 
         for _ in range(self.M):
             V_pred = self.critic(states)
@@ -137,14 +150,19 @@ class Agent(object):
             self.critic_opt.step()
 
             # with th.no_grad():
-            # phi = returns - self.critic.forward(states)
+            # phi = returns - self.critic.forward(states).detach()
 
             new_proba = th.zeros(size=(batch_len,))
 
-            for b_ix in range(batch_len):
-                new_proba[b_ix] = self.compute_action_proba(states[b_ix], actions[b_ix])
+            # for b_ix in range(batch_len):
+            #     # new_proba[b_ix] = self.compute_action_proba(states[b_ix], actions[b_ix])
+            #     new_proba[b_ix] = self.compute_action_log_proba(states[b_ix], actions[b_ix])
 
-            ratio = new_proba / old_proba
+            new_proba = self.compute_action_log_proba(states, actions)
+
+            # ratio = new_proba / old_proba
+
+            ratio = th.exp(new_proba - old_proba)
 
             clipped_ratio = th.clamp(ratio, 1 - self.EPS, 1 + self.EPS)
 

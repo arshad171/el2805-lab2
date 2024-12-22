@@ -30,7 +30,7 @@ def running_average(x, N):
 # Import and initialize Mountain Car Environment
 env = gym.make('LunarLanderContinuous-v3')
 # If you want to render the environment while training run instead:
-# env = gym.make('LunarLanderContinuous-v2', render_mode = "human")
+# env = gym.make('LunarLanderContinuous-v3', render_mode = "human")
 
 env.reset()
 
@@ -48,7 +48,7 @@ episode_number_of_steps = []
 
 MAX_BUFFER_SIZE = 30_000
 BATCH_SIZE = 64
-GAMMA = 0.99
+GAMMA = 0.995
 M = 10
 EPS = 0.2
 # Agent initialization
