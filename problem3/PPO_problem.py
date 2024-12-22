@@ -48,7 +48,7 @@ episode_number_of_steps = []
 
 MAX_BUFFER_SIZE = 30_000
 BATCH_SIZE = 64
-GAMMA = 0.995
+GAMMA = 0.99
 M = 10
 EPS = 0.2
 # Agent initialization
