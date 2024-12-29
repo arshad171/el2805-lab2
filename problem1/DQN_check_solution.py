@@ -27,7 +27,7 @@ def running_average(x, N):
 
 # Load model
 try:
-    state_dict = torch.load('./model_weights/best_model_170257.pt', weights_only=True, map_location='cpu')
+    state_dict = torch.load("./model_weights/neural-network-1.pt", weights_only=True, map_location='cpu')
     model = DQNetwork()
     model.load_state_dict(state_dict)
     print('Network model: {}'.format(model))
